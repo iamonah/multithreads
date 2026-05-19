@@ -36,6 +36,7 @@ func parseToArray(textChannel chan string, metarChannel chan []string) {
 			}
 			if metarClose.MatchString(line) {
 				metarSlice = append(metarSlice, metarStr)
+				metarStr = ""
 			}
 		}
 		metarChannel <- metarSlice
@@ -89,7 +90,8 @@ func main() {
 	//3. Assign to N, NE, E, SE, S, SW, W, NW, 070 -> E + 1
 	go mineWindDistribution(windChannel, resultsChannel)
 
-	absPath, _ := filepath.Abs("./channels/metarfiles")
+	absPath, _ := filepath.Abs("./metarfiles")
+	fmt.Println(absPath)
 	files, _ := os.ReadDir(absPath)
 	start := time.Now()
 	for _, file := range files {
