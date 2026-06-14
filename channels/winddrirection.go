@@ -1,5 +1,5 @@
 package main
-
+//pipelining example, reading metar files and extracting wind direction, then counting the distribution of wind directions in 8 sectors (N, NE, E, SE, S, SW, W, NW)
 import (
 	"fmt"
 	"math"
@@ -26,8 +26,8 @@ func parseToArray(textChannel chan string, metarChannel chan []string) {
 	for text := range textChannel {
 		lines := strings.Split(text, "\n")
 		metarSlice := make([]string, 0, len(lines))
-		metarStr := ""
 		for _, line := range lines {
+			metarStr := ""
 			if tafValidation.MatchString(line) {
 				break
 			}
@@ -36,7 +36,6 @@ func parseToArray(textChannel chan string, metarChannel chan []string) {
 			}
 			if metarClose.MatchString(line) {
 				metarSlice = append(metarSlice, metarStr)
-				metarStr = ""
 			}
 		}
 		metarChannel <- metarSlice
