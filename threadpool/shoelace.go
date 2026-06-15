@@ -41,7 +41,7 @@ func findArea(input <-chan string, resultChan chan<- float64, wg *sync.WaitGroup
 	}
 }
 
-func splitToPoint(outputch chan string) error {
+func splitToPoint(inputCh chan string) error {
 	absPath, err := filepath.Abs("./threadpool/polygons.txt")
 	if err != nil {
 		panic(err)
@@ -51,11 +51,12 @@ func splitToPoint(outputch chan string) error {
 		panic(err)
 	}
 	defer file.Close()
-	defer close(outputch)
+	defer close(inputCh)
 
 	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)  //increase buffer size to 1MB
 	for scanner.Scan() {
-		outputch <- scanner.Text()
+		inputCh <- scanner.Text()
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -71,17 +72,18 @@ func main() {
 	var wg sync.WaitGroup
 
 	start := time.Now()
+
+	for i := 0; i < numberOfWorkers; i++ {
+		wg.Add(1)
+		go findArea(inputChan, resultChan, &wg)
+	}
+
 	go func() {
 		err := splitToPoint(inputChan)
 		if err != nil {
 			panic(err)
 		}
 	}()
-
-	for i := 0; i < numberOfWorkers; i++ {
-		wg.Add(1)
-		go findArea(inputChan, resultChan, &wg)
-	}
 
 	go func() {
 		wg.Wait()
