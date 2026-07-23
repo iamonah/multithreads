@@ -12,16 +12,17 @@ const (
 )
 
 var (
-	matrixA   = [matrixSize][matrixSize]int{}
-	matrixB   = [matrixSize][matrixSize]int{}
-	result    = [matrixSize][matrixSize]int{}
-	rwLock    = sync.RWMutex{}
+	matrixA = [matrixSize][matrixSize]int{}
+	matrixB = [matrixSize][matrixSize]int{}
+	result  = [matrixSize][matrixSize]int{}
+	rwLock  = sync.RWMutex{}
 	// cond coordinates worker goroutines with the main goroutine.
 	// Each worker calls Wait to sleep until main broadcasts that fresh
 	// matrix data is ready, and Wait temporarily releases the read lock
 	// while the worker is blocked so the writer can proceed.
-	cond      = sync.NewCond(rwLock.RLocker())
-	waitGroup = sync.WaitGroup{}
+	cond         = sync.NewCond(rwLock.RLocker())
+	workComplete = sync.WaitGroup{}
+	round        int
 )
 
 func generateRandomMatrix(matrix *[matrixSize][matrixSize]int) {
@@ -37,21 +38,30 @@ func WorkoutRow(row int) {
 	// The call atomically unlocks, blocks until Broadcast wakes the worker,
 	// then re-locks before returning so the row computation sees a consistent
 	// snapshot of matrixA and matrixB for that round.
-	rwLock.RLock() //acuiring the reader portion of the lock
+
+	completeRound := 0
 	for {
-		waitGroup.Done()
-		cond.Wait()
+		rwLock.RLock()
+
+		for round == completeRound {
+			cond.Wait()
+		}
+		completeRound = round
+
 		for column := 0; column < matrixSize; column++ {
 			for i := 0; i < matrixSize; i++ {
 				result[row][column] += matrixA[row][i] * matrixB[i][column]
 			}
 		}
+
+		rwLock.RUnlock()
+		workComplete.Done() // signal that this row is complete
 	}
 }
 
 func main() {
 	fmt.Println("Working...")
-	waitGroup.Add(matrixSize)
+	// waitGroup.Add(matrixSize)
 	for i := 0; i < matrixSize; i++ {
 		go WorkoutRow(i)
 	}
@@ -59,13 +69,17 @@ func main() {
 	//multiplication of 100 pairs of matrices
 	start := time.Now()
 	for i := 0; i < 100; i++ {
-		waitGroup.Wait()
+		// waitGroup.Wait()
 		rwLock.Lock()
-		go generateRandomMatrix(&matrixA)
-		go generateRandomMatrix(&matrixB)
-		waitGroup.Add(matrixSize)
-		rwLock.Unlock()
+		generateRandomMatrix(&matrixA)
+		generateRandomMatrix(&matrixB)
+
+		workComplete.Add(matrixSize)
+		round++
+
 		cond.Broadcast()
+		rwLock.Unlock()
+		workComplete.Wait() // wait for all rows to complete
 	}
 	fmt.Println(result)
 	fmt.Println(time.Since(start))
