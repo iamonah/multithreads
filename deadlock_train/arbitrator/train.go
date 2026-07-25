@@ -1,7 +1,7 @@
 package arbitrator
 
 import (
-	common "multithreads/deadlock_train/comon"
+	common "github.com/iamonah/multithreads/deadlock_train/comon"
 	"sync"
 	"time"
 )
@@ -27,7 +27,7 @@ func lockIntersectionInDistance(id, reserveStart, reserveEnd int, crossings []*c
 			intersectionsToLock = append(intersectionsToLock, crossing.Intersection)
 		}
 	}
-	controller.Lock() 
+	controller.Lock()
 	for !allFree(intersectionsToLock) {
 		cond.Wait() //unlocks and sleeps
 	}

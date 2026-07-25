@@ -1,3 +1,3 @@
-module github.com/AlexL70/multithreadingingo/barriers
+module github.com/iamonah/multithreads
 
-go 1.18
+go 1.25.5

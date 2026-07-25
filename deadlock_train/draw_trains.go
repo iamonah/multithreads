@@ -3,9 +3,9 @@ package main
 import (
 	"image/color"
 	"math"
-	common "multithreads/deadlock_train/comon"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	common "github.com/iamonah/multithreads/deadlock_train/comon"
 )
 
 var (
